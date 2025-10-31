@@ -2,7 +2,8 @@ package sicam.compltickets_backend.Repositories;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
-import sicam.complaint_tickets.Entities.User;
+import sicam.compltickets_backend.Entities.User;
+
 
 import java.util.List;
 import java.util.Optional;
