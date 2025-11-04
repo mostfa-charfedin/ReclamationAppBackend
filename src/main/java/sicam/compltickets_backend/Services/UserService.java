@@ -36,6 +36,7 @@ public class UserService {
             throw new RuntimeException("Email déjà utilisé");
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setActive(true);
         return userRepository.save(user);
     }
 
@@ -46,5 +47,81 @@ public class UserService {
 
     public Optional<User> getUserByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+
+    public User updateUser(String id, User userDetails) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        // Mettre à jour les champs modifiables
+        if (userDetails.getNom() != null) {
+            user.setNom(userDetails.getNom());
+        }
+        if (userDetails.getPrenom() != null) {
+            user.setPrenom(userDetails.getPrenom());
+        }
+        if (userDetails.getEmail() != null && !userDetails.getEmail().equals(user.getEmail())) {
+            // Vérifier si le nouvel email n'est pas déjà utilisé
+            if (userRepository.existsByEmail(userDetails.getEmail())) {
+                throw new RuntimeException("Email déjà utilisé");
+            }
+            user.setEmail(userDetails.getEmail());
+        }
+        if (userDetails.getRole() != null) {
+            user.setRole(userDetails.getRole());
+        }
+
+        return userRepository.save(user);
+    }
+
+
+    public void deleteUser(String id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        userRepository.delete(user);
+    }
+
+
+    public User activateUser(String id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        user.setActive(true);
+        return userRepository.save(user);
+    }
+
+
+    public User deactivateUser(String id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        user.setActive(false);
+        return userRepository.save(user);
+    }
+
+    public User updateUserRole(String id, String newRole) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        // Valider le rôle
+        if (!isValidRole(newRole)) {
+            throw new RuntimeException("Rôle invalide");
+        }
+
+        user.setRole(newRole);
+        return userRepository.save(user);
+    }
+
+
+    private boolean isValidRole(String role) {
+        return role != null &&
+                (role.equals("USER") || role.equals("TECHNICIEN") || role.equals("ADMIN"));
+    }
+
+
+    public User resetPassword(String id, String newPassword) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        user.setPassword(passwordEncoder.encode(newPassword));
+        return userRepository.save(user);
     }
 }

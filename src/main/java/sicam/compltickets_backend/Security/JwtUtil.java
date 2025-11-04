@@ -12,7 +12,7 @@ import java.util.Date;
 
 @Component
 public class JwtUtil {
-    private final String SECRET_KEY = "votre-secret-key-tres-longue-et-securisee-pour-jwt-gestion-reclamations-2024";
+    private final String SECRET_KEY = "vtbHAq83EGekhdADBBH0bQVvauShT2xseGgUXN23I8fPgestion-reclamations-2024";
     private final long EXPIRATION_TIME = 86400000; // 24 heures
 
     private final Algorithm algorithm = Algorithm.HMAC256(SECRET_KEY);

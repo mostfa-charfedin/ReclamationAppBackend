@@ -12,7 +12,12 @@ public interface UserRepository extends MongoRepository<User, String> {
     Optional<User> findByEmail(String email);
     List<User> findByRole(String role);
     boolean existsByEmail(String email);
-    
+
+
+
     @Query("{'role': 'TECHNICIEN'}")
     List<User> findTechniciens();
+    List<User> findByActive(boolean active);
+    List<User> findByRoleAndActive(String role, boolean active);
+
 }
