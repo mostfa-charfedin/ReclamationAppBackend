@@ -1,16 +1,25 @@
 package sicam.compltickets_backend.Controllers;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import sicam.compltickets_backend.DTO.CommentRequest;
 import sicam.compltickets_backend.DTO.CreateReclamationRequest;
 import sicam.compltickets_backend.DTO.ReclamationStats;
 import sicam.compltickets_backend.DTO.StatusUpdateRequest;
 import sicam.compltickets_backend.Entities.Reclamation;
 import sicam.compltickets_backend.Services.ReclamationService;
-
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/reclamations")
@@ -70,9 +79,76 @@ public class ReclamationController {
         return ResponseEntity.ok(reclamationService.getStats());
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteReclamation(@PathVariable String id) {
-        reclamationService.deleteReclamation(id);
+    @PutMapping("/{id}/category/{categoryId}")
+    public ResponseEntity<Reclamation> updateCategory(@PathVariable String id, @PathVariable String categoryId) {
+        return ResponseEntity.ok(reclamationService.updateCategory(id, categoryId));
+    }
+
+    @DeleteMapping("/{id}/category")
+    public ResponseEntity<Void> removeCategory(@PathVariable String id) {
+        reclamationService.removeCategory(id);
         return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{id}/priorite")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Reclamation> togglePriorite(@PathVariable String id) {
+        return ResponseEntity.ok(reclamationService.togglePriorite(id));
+    }
+
+    // Archive (soft delete) instead of physical delete
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> archiveReclamation(@PathVariable String id) {
+        reclamationService.archiveReclamation(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{id}/unarchive")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Reclamation> unarchiveReclamation(@PathVariable String id) {
+        return ResponseEntity.ok(reclamationService.unarchiveReclamation(id));
+    }
+
+    @GetMapping("/archived")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Reclamation>> getArchivedReclamations() {
+        return ResponseEntity.ok(reclamationService.getArchivedReclamations());
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<byte[]> exportReclamationsExcel(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String from,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String to,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Boolean all
+    ) {
+        try {
+            byte[] content = reclamationService.exportAllReclamationsToExcel(from, to, all);
+            // Build a descriptive filename based on params
+            String filename = "reclamations_report";
+            if (all != null && all) {
+                filename = "reclamations_all";
+            } else if (from != null && !from.isEmpty() && to != null && !to.isEmpty()) {
+                // sanitize and use the provided dates
+                String f = from.replaceAll("[^0-9-]", "");
+                String t = to.replaceAll("[^0-9-]", "");
+                filename = String.format("reclamations_%s_%s", f, t);
+            } else if (from != null && !from.isEmpty()) {
+                String f = from.replaceAll("[^0-9-]", "");
+                filename = String.format("reclamations_from_%s", f);
+            } else if (to != null && !to.isEmpty()) {
+                String t = to.replaceAll("[^0-9-]", "");
+                filename = String.format("reclamations_to_%s", t);
+            }
+            String contentDisposition = String.format("attachment; filename=\"%s.xlsx\"", filename);
+            return ResponseEntity.ok()
+                    .header("Content-Disposition", contentDisposition)
+                    .header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    .body(content);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
     }
 }
